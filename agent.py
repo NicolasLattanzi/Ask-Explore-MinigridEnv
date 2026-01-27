@@ -1,8 +1,12 @@
-import gymnasium as gym
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+import gymnasium as gym
+import minigrid
+
+from minigrid.wrappers import ActionBonus
+
 
 class Policy(nn.Module):
 
@@ -50,8 +54,6 @@ class Policy(nn.Module):
             nn.ReLU(),
             nn.Linear(256, self.feature_dim)
         )
-        
-        self.eta = 0.05  # curiosity coefficient
         
         # Buffers PPO + curiosity
         self.values, self.states, self.actions = [], [], []
@@ -110,10 +112,12 @@ class Policy(nn.Module):
             return int(action.item())
     
     
-    def new_trajectory(self, env, rollout_steps):
+    def new_trajectory(self, env, rollout_steps, eta):
         self.values, self.states, self.actions = [], [], []
         self.rewards, self.log_probs, self.dones = [], [], []
         self.next_states, self.intrinsic_rewards = [], []
+        last_position = (0,0)
+        agent_is_still = False
 
         s, _ = env.reset()
         for t in range(rollout_steps):
@@ -128,11 +132,21 @@ class Policy(nn.Module):
 
             new_state, reward, terminated, truncated, info = env.step(a_env)
             done = terminated or truncated
-            
+
             # === CURIOSITY REWARD ===
             intr_reward = self.compute_intrinsic_reward(s, a_env, new_state)
             self.intrinsic_rewards.append(intr_reward)
-            reward += self.eta * intr_reward  # mix extrinsic + intrinsic
+            reward += eta * intr_reward  # mix extrinsic + intrinsic
+            
+            # === behavior reward ===
+            curr_position = env.unwrapped.agent_pos
+            if curr_position == last_position: # don't stop for more than 2 frames
+                if agent_is_still:
+                    reward -= 0.2
+                agent_is_still = True
+            else: 
+                agent_is_still = False
+            last_position = curr_position
 
             self.values.append(value.item())
             self.states.append(s)
@@ -177,18 +191,19 @@ class Policy(nn.Module):
         clipping = 0.2
         learning_rate = 0.001
         
-        max_iterations = 200 
+        max_iterations = 5000
         epochs = 4
         rollout_steps = 200
-        batch_size = 32
+        batch_size = 16
         
         # curiosity params
-        self.eta = 0.1  # curiosity weight
+        eta = 0.01  # curiosity weight
         icm_lr = 0.001   # learning rate separato per ICM
 
         ###############################
         
         self.env = gym.make(self.env_name, render_mode="rgb_array")
+        #self.env = ActionBonus(self.env)
 
         avg_loss, max_score = 0.0, -float("inf")
         ppo_optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
@@ -196,7 +211,7 @@ class Policy(nn.Module):
         super().train(True)
 
         for step in range(max_iterations):
-            final_val = self.new_trajectory(self.env, rollout_steps)
+            final_val = self.new_trajectory(self.env, rollout_steps, eta)
             target_values, adv_values = self.compute_advantage(final_val, gamma, lambd)
 
             if len(self.rewards) == 0:
@@ -218,7 +233,7 @@ class Policy(nn.Module):
             data_size = obs_batch.size(0)
             perm_idx = torch.randperm(data_size, device=self.device)
             loss_history = []
-
+            
             # ICM Training
             if len(self.next_states) >= batch_size:  # batch minimo per ICM (32?)
                 icm_batch_states = torch.stack([ self.preprocessing(s).squeeze(0) for s in self.states[:-1] ])
@@ -283,15 +298,15 @@ class Policy(nn.Module):
 
             avg_loss = float(np.mean(loss_history)) if loss_history else avg_loss
 
-            if step % 10 == 0:
+            if step % 50 == 0:
                 avg_intr_reward = np.mean(self.intrinsic_rewards) if self.intrinsic_rewards else 0
                 print(f"progress: {step}/{max_iterations} "
                       f"reward: {current_score:6.2f} "
                       f"intr_r: {avg_intr_reward:6.4f} "
                       f"loss: {avg_loss:6.2f}")
             
-            #if step % 100 == 0:
-            #    self.save(path=f'model_{step}.pt')
+            if step % 200 == 0:
+                self.save(path=f'model_{step}.pt')
 
         self.env.close()
 
@@ -303,7 +318,7 @@ class Policy(nn.Module):
         torch.save(self.state_dict(), path)
 
     def load(self):
-        self.load_state_dict(torch.load('model.pt', map_location=self.device))
+        self.load_state_dict(torch.load('best_model_EMPTY16x16.pt', map_location=self.device))
 
     def to(self, device):
         ret = super().to(device)
