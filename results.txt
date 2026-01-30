@@ -1,0 +1,91 @@
+-----------------------------------------------------------------------------------
+--- env: EMPTY 16x16 -----------------------------------------------------
+
+the best model is reached within about 300 iterations. 
+average reward: 0.97
+
+params:
+
+learning_rate = 0.001
+max_iterations = 5000
+epochs = 4
+rollout_steps = 200
+batch_size = 16
+
+eta = 0.01
+icm_lr = 0.001
+
+-----------------------------------------------------------------------------------
+--- env: FOUR ROOMS -----------------------------------------------------
+
+the best model is reached within 3000 to 4000 iterations. 
+average reward: 0.4
+
+
+params:
+
+learning_rate = 0.001
+max_iterations = 5000
+epochs = 4
+rollout_steps = 350
+batch_size = 16
+
+eta = 0.01
+icm_lr = 0.001
+
+-----------------------------------------------------------------------------------
+--- env: DOOR KEY -----------------------------------------------------
+
+model can't reach a working stage within 10'000 iterations
+average reward: 0.0
+
+
+params:
+
+learning_rate = 0.001
+max_iterations = 5000
+epochs = 4
+rollout_steps = 350
+batch_size = 16
+
+eta = 0.01
+icm_lr = 0.001
+
+-----------------------------------------------------------------------------------
+--- env: LAVA GAPS -----------------------------------------------------
+
+model reaches 0.7 accuracy in about 1000 iterations and then slowly rises to
+about 0.9 at 3500 iterations. after that point results start to get worse
+average reward: 0.89
+
+
+params:
+
+learning_rate = 0.001
+max_iterations = 5000
+epochs = 4
+rollout_steps = 300
+batch_size = 16
+
+eta = 0.01
+icm_lr = 0.001
+
+-----------------------------------------------------------------------------------
+--- env: DIST SHIFT -----------------------------------------------------
+
+for some reason the model never reaches the goal and just always launch itself in the lava.
+average reward: 0.0
+
+
+params:
+
+learning_rate = 0.001
+max_iterations = 5000
+epochs = 4
+rollout_steps = 250
+batch_size = 16
+
+eta = 0.01
+icm_lr = 0.001
+
+

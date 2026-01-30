@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 import gymnasium as gym
 import minigrid
+import questions
 
 from minigrid.wrappers import ActionBonus
 
@@ -14,45 +15,46 @@ class Policy(nn.Module):
         super(Policy, self).__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
-        # checking environment size (based on agent FOV)
+        # checking environment
         self.env_name = minigrid_env
-        self.env = gym.make(minigrid_env, render_mode="rgb_array")
+        self.env = gym.make(minigrid_env, render_mode=None)
         obs, _ = self.env.reset()
-        n_input_channels = obs['image'].shape[0]  # ex: 7
+        #self.build_grid()
         self.env.close()
-        print("shape: ", obs['image'].shape[0] )
+        
+        QAprogram = questions.QA()
         
         # === ActorCritic CNN ===
         self.cnn = nn.Sequential(
-            nn.Conv2d(3, 28, kernel_size=4, stride=1, padding=0),
+            nn.Conv2d(3, 32, kernel_size=4, stride=1, padding=0),
             nn.ReLU(),
-            nn.Conv2d(28, 56, kernel_size=2, stride=1, padding=0),
+            nn.Conv2d(32, 64, kernel_size=2, stride=1, padding=0),
             nn.ReLU(),
             nn.Flatten(),
-            nn.Linear(504, 256),
+            nn.Linear(576, 128),
             nn.ReLU()
         )
         
-        self.actor_logits = nn.Linear(256, 7)
-        self.critic = nn.Linear(256, 1)
+        self.actor_logits = nn.Linear(128, 7)
+        self.critic = nn.Linear(128, 1)
         
         # === CURIOSITY MODULE (ICM) ===
-        self.feature_dim = 256
+        self.feature_dim = 128
         self.icm = nn.Sequential(
-            nn.Conv2d(3, 28, kernel_size=4, stride=1, padding=0),
+            nn.Conv2d(3, 32, kernel_size=4, stride=1, padding=0),
             nn.ReLU(),
-            nn.Conv2d(28, 56, kernel_size=2, stride=1, padding=0),
+            nn.Conv2d(32, 64, kernel_size=2, stride=1, padding=0),
             nn.ReLU(),
             nn.Flatten(),
-            nn.Linear(504, self.feature_dim),
+            nn.Linear(576, self.feature_dim),
             nn.ReLU()
         )
         
         # Forward model: predicts next_feature from current_feature + action
         self.forward_model = nn.Sequential(
-            nn.Linear(self.feature_dim + 7, 256),  # +7 per discrete actions one-hot
+            nn.Linear(self.feature_dim + 7, self.feature_dim),  # +7 per discrete actions one-hot
             nn.ReLU(),
-            nn.Linear(256, self.feature_dim)
+            nn.Linear(self.feature_dim, self.feature_dim)
         )
         
         # Buffers PPO + curiosity
@@ -73,6 +75,18 @@ class Policy(nn.Module):
         logits = self.actor_logits(x)
         value = self.critic(x).squeeze(-1)
         return logits, value
+    
+    def build_grid(self):
+        envgrid = self.env.unwrapped.grid.encode()
+        w = self.env.unwrapped.width
+        h = self.env.unwrapped.height
+        
+        self.grid = [ [0 for _ in range(w)] for _ in range(h) ]
+        for row in range(h):
+            for column in range(7):
+                grid_value = envgrid[row, column]
+                grid_value = list(map(lambda x: int(x), grid_value))
+                self.grid[row][column] = [grid_value[0], grid_value[1], grid_value[2]]
     
     def compute_intrinsic_reward(self, state, action, next_state):
         state_t = self.preprocessing(state)
@@ -112,14 +126,16 @@ class Policy(nn.Module):
             return int(action.item())
     
     
-    def new_trajectory(self, env, rollout_steps, eta):
+    def new_trajectory(self, rollout_steps, eta):
         self.values, self.states, self.actions = [], [], []
         self.rewards, self.log_probs, self.dones = [], [], []
         self.next_states, self.intrinsic_rewards = [], []
         last_position = (0,0)
-        agent_is_still = False
+        #agent_is_still = False
+        still_frames = 0
 
-        s, _ = env.reset()
+        s, _ = self.env.reset()
+        self.build_grid()
         for t in range(rollout_steps):
             state_t = self.preprocessing(s)
 
@@ -130,7 +146,7 @@ class Policy(nn.Module):
                 log_prob = dist.log_prob(action)
                 a_env = int(action.item())
 
-            new_state, reward, terminated, truncated, info = env.step(a_env)
+            new_state, reward, terminated, truncated, info = self.env.step(a_env)
             done = terminated or truncated
 
             # === CURIOSITY REWARD ===
@@ -138,14 +154,17 @@ class Policy(nn.Module):
             self.intrinsic_rewards.append(intr_reward)
             reward += eta * intr_reward  # mix extrinsic + intrinsic
             
-            # === behavior reward ===
-            curr_position = env.unwrapped.agent_pos
-            if curr_position == last_position: # don't stop for more than 2 frames
-                if agent_is_still:
+            # === BEHAVIOR REWARD ===
+            curr_position = self.env.unwrapped.agent_pos
+            curr_position = list(map(lambda x: int(x), curr_position))
+            
+            # don't stop for more than 2 frames
+            if curr_position == last_position:
+                still_frames += 1
+                if still_frames >= 3:
                     reward -= 0.2
-                agent_is_still = True
             else: 
-                agent_is_still = False
+                still_frames = 0
             last_position = curr_position
 
             self.values.append(value.item())
@@ -158,7 +177,8 @@ class Policy(nn.Module):
 
             s = new_state
             if done:
-                s, _ = env.reset()
+                s, _ = self.env.reset()
+                self.build_grid()
                 
         with torch.no_grad():
             _, value = self.forward(self.preprocessing(s))
@@ -193,17 +213,16 @@ class Policy(nn.Module):
         
         max_iterations = 5000
         epochs = 4
-        rollout_steps = 200
+        rollout_steps = 250
         batch_size = 16
         
         # curiosity params
         eta = 0.01  # curiosity weight
-        icm_lr = 0.001   # learning rate separato per ICM
+        icm_lr = 0.001   # ICM learning rate
 
         ###############################
         
         self.env = gym.make(self.env_name, render_mode="rgb_array")
-        #self.env = ActionBonus(self.env)
 
         avg_loss, max_score = 0.0, -float("inf")
         ppo_optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
@@ -211,7 +230,7 @@ class Policy(nn.Module):
         super().train(True)
 
         for step in range(max_iterations):
-            final_val = self.new_trajectory(self.env, rollout_steps, eta)
+            final_val = self.new_trajectory(rollout_steps, eta)
             target_values, adv_values = self.compute_advantage(final_val, gamma, lambd)
 
             if len(self.rewards) == 0:
@@ -298,14 +317,14 @@ class Policy(nn.Module):
 
             avg_loss = float(np.mean(loss_history)) if loss_history else avg_loss
 
-            if step % 50 == 0:
+            if step % 100 == 0:
                 avg_intr_reward = np.mean(self.intrinsic_rewards) if self.intrinsic_rewards else 0
                 print(f"progress: {step}/{max_iterations} "
                       f"reward: {current_score:6.2f} "
                       f"intr_r: {avg_intr_reward:6.4f} "
                       f"loss: {avg_loss:6.2f}")
             
-            if step % 200 == 0:
+            if step % 250 == 0:
                 self.save(path=f'model_{step}.pt')
 
         self.env.close()
@@ -318,7 +337,10 @@ class Policy(nn.Module):
         torch.save(self.state_dict(), path)
 
     def load(self):
-        self.load_state_dict(torch.load('best_model_EMPTY16x16.pt', map_location=self.device))
+        self.load_state_dict(torch.load('model_4000.pt', map_location=self.device))
+    
+    def load_based_on_env(self, env_name):
+        self.load_state_dict(torch.load('models/' + env_name + '.pt', map_location=self.device))
 
     def to(self, device):
         ret = super().to(device)
