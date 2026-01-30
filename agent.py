@@ -22,7 +22,7 @@ class Policy(nn.Module):
         #self.build_grid()
         self.env.close()
         
-        QAprogram = questions.QA()
+        self.qa = questions.QA()
         
         # === ActorCritic CNN ===
         self.cnn = nn.Sequential(
@@ -126,16 +126,15 @@ class Policy(nn.Module):
             return int(action.item())
     
     
-    def new_trajectory(self, rollout_steps, eta):
+    def new_trajectory(self, rollout_steps, eta, using_qa):
         self.values, self.states, self.actions = [], [], []
         self.rewards, self.log_probs, self.dones = [], [], []
         self.next_states, self.intrinsic_rewards = [], []
         last_position = (0,0)
-        #agent_is_still = False
         still_frames = 0
 
         s, _ = self.env.reset()
-        self.build_grid()
+        self.qa.build_grid()
         for t in range(rollout_steps):
             state_t = self.preprocessing(s)
 
@@ -166,6 +165,10 @@ class Policy(nn.Module):
             else: 
                 still_frames = 0
             last_position = curr_position
+            
+            # === QA REWARD ===
+            if using_qa:
+                reward += self.qa.check_questions(self.env)
 
             self.values.append(value.item())
             self.states.append(s)
@@ -178,7 +181,7 @@ class Policy(nn.Module):
             s = new_state
             if done:
                 s, _ = self.env.reset()
-                self.build_grid()
+                self.qa.build_grid()
                 
         with torch.no_grad():
             _, value = self.forward(self.preprocessing(s))
@@ -219,6 +222,8 @@ class Policy(nn.Module):
         # curiosity params
         eta = 0.01  # curiosity weight
         icm_lr = 0.001   # ICM learning rate
+        
+        using_qa = True
 
         ###############################
         
@@ -230,7 +235,7 @@ class Policy(nn.Module):
         super().train(True)
 
         for step in range(max_iterations):
-            final_val = self.new_trajectory(rollout_steps, eta)
+            final_val = self.new_trajectory(rollout_steps, eta, using_qa)
             target_values, adv_values = self.compute_advantage(final_val, gamma, lambd)
 
             if len(self.rewards) == 0:
@@ -337,7 +342,7 @@ class Policy(nn.Module):
         torch.save(self.state_dict(), path)
 
     def load(self):
-        self.load_state_dict(torch.load('model_4000.pt', map_location=self.device))
+        self.load_state_dict(torch.load('best_model.pt', map_location=self.device))
     
     def load_based_on_env(self, env_name):
         self.load_state_dict(torch.load('models/' + env_name + '.pt', map_location=self.device))

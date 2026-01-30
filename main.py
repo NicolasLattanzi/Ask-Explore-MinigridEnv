@@ -16,7 +16,7 @@ tested envs:
 "MiniGrid-LavaGapS7-v0"
 '''
 
-MINIGRID_ENV = "MiniGrid-DistShift2-v0"
+MINIGRID_ENV = "MiniGrid-FourRooms-v0"
 
 
 def evaluate(env=None, n_episodes=100, render=False, load_best_model=False):
