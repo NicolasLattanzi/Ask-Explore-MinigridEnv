@@ -134,7 +134,7 @@ class Policy(nn.Module):
         still_frames = 0
 
         s, _ = self.env.reset()
-        self.qa.build_grid()
+        self.qa.build_grid(self.env)
         for t in range(rollout_steps):
             state_t = self.preprocessing(s)
 
@@ -168,7 +168,7 @@ class Policy(nn.Module):
             
             # === QA REWARD ===
             if using_qa:
-                reward += self.qa.check_questions(self.env)
+                reward += self.qa.check_questions(self.env, reward, done)
 
             self.values.append(value.item())
             self.states.append(s)
@@ -181,7 +181,7 @@ class Policy(nn.Module):
             s = new_state
             if done:
                 s, _ = self.env.reset()
-                self.qa.build_grid()
+                self.qa.build_grid(self.env)
                 
         with torch.no_grad():
             _, value = self.forward(self.preprocessing(s))
@@ -214,9 +214,9 @@ class Policy(nn.Module):
         clipping = 0.2
         learning_rate = 0.001
         
-        max_iterations = 5000
+        max_iterations = 10000
         epochs = 4
-        rollout_steps = 250
+        rollout_steps = 300
         batch_size = 16
         
         # curiosity params
@@ -259,7 +259,7 @@ class Policy(nn.Module):
             loss_history = []
             
             # ICM Training
-            if len(self.next_states) >= batch_size:  # batch minimo per ICM (32?)
+            if len(self.next_states) >= batch_size:  # batch minimo per ICM
                 icm_batch_states = torch.stack([ self.preprocessing(s).squeeze(0) for s in self.states[:-1] ])
                 icm_batch_next = torch.stack([  self.preprocessing(ns).squeeze(0) for ns in self.next_states[1:] ])
                 icm_batch_actions = torch.tensor(self.actions[:-1], dtype=torch.long, device=self.device)
@@ -341,8 +341,8 @@ class Policy(nn.Module):
     def save(self, path='model.pt'):
         torch.save(self.state_dict(), path)
 
-    def load(self):
-        self.load_state_dict(torch.load('best_model.pt', map_location=self.device))
+    def load(self, path='best_model.pt'):
+        self.load_state_dict(torch.load(path, map_location=self.device))
     
     def load_based_on_env(self, env_name):
         self.load_state_dict(torch.load('models/' + env_name + '.pt', map_location=self.device))

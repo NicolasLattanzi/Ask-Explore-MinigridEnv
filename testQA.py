@@ -32,7 +32,7 @@ class GridController(pyglet.window.Window):
             print(f"Action: {action}")
             obs, reward, terminated, truncated, info = self.env.step(action)
             
-            bonus = self.qa.check_questions(self.env)
+            bonus = self.qa.check_questions(self.env, reward, terminated or truncated)
             print(f"Step reward: {reward}, QA bonus: {bonus}")
             
             if terminated or truncated:
@@ -54,11 +54,11 @@ tested envs:
 "MiniGrid-Empty-16x16-v0"
 "MiniGrid-FourRooms-v0"
 "MiniGrid-DoorKey-16x16-v0"
-"MiniGrid-DistShift2-v0"
 "MiniGrid-LavaGapS7-v0"
+"MiniGrid-MemoryS11-v0"
 '''
 
-MINIGRID_ENV = "MiniGrid-DoorKey-16x16-v0"
+MINIGRID_ENV = "MiniGrid-LavaGapS7-v0"
 
 def main():
     env = gym.make(MINIGRID_ENV, render_mode="human") 

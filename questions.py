@@ -11,6 +11,7 @@ Questions:
 1. Did you reach the goal?
 2. Can you see the goal?
 3. Did you take a key?
+3. Are you near a door? (with a key)
 4. Did you unlock a door?
 5. Are you going through a door/ hall?
 6. Did you die? (ex. lava)
@@ -26,7 +27,7 @@ class QA():
         self.grid = []
         self.carrying = False
     
-    def check_questions(self, env):
+    def check_questions(self, env, reward, done):
         bonus = 0  # total reward for the agent
         
         carried_item = env.unwrapped.carrying
@@ -34,29 +35,36 @@ class QA():
         curr_position = list(map(lambda x: int(x), curr_position))
         x, y = curr_position
         
-        # 1. Did you reach the goal?
-        if self.grid[x][y] == 2: # reward based on steps??
-            bonus += 10
-        # 6. Did you die in lava?
-        elif self.grid[x][y] == 3:
-            bonus -= 10
-        else:
-            # 3. Did you take a key?
-            if not self.carrying and self.has_key(carried_item):
-                bonus += 1
-                self.carrying = True
-            
-            # 4. Did you unlock a door?
-            if self.grid[x][y] == 4:
-                bonus += 1
-                self.grid[x][y] == 0 # no exploit!
-            
-            # 5. Are you going through a door/ hall?
-            if self.grid[x][y+1] == 1 and self.grid[x][y-1] == 1:
-                bonus += 0.1
-            elif self.grid[x+1][y] == 1 and self.grid[x-1][y] == 1:
+        if done:
+            # 1. Did you reach the goal?
+            if reward > 0:
+                return max(5, 10 * reward)
+            # 6. Did you fail?
+            else:
+                return -10
+        
+        # 3. Did you take a key?
+        if not self.carrying and self.has_key(carried_item):
+            bonus += 1
+            self.carrying = True
+        
+        # 4. Are you near a door?
+        if self.grid[x][y] == 6:
+            bonus += 0.03
+            if self.carrying == True:
                 bonus += 0.1
         
+        # 4. Did you unlock a door?
+        elif self.grid[x][y] == 4:
+            bonus += 5
+            self.grid[x][y] == 0 # no exploit!
+            self.grid[x-1][y] == 0 
+        
+        # 5. Are you going through a door/ hall?
+        # elif self.grid[x][y] == 5:
+        #     bonus += 0.15
+        #     self.grid[x][y] = 0
+            
         return bonus
 
     def has_key(self, item):
@@ -88,6 +96,19 @@ class QA():
                 elif grid_value == [4,4,2]: # door
                     v = 4
                 self.grid[row][column] = v
+        
+        for row in range(h):
+            for col in range(w):
+                # hall/ door
+                if self.grid[row][col] == 0: 
+                    if self.grid[row][col+1] == 1 and self.grid[row][col-1] == 1:
+                        self.grid[row][col] = 5
+                    elif self.grid[row+1][col] == 1 and self.grid[row-1][col] == 1:
+                        self.grid[row][col] = 5
+                # in front of a door
+                elif self.grid[row][col] == 4:
+                    self.grid[row-1][col] = 6
+                
     
     def print_grid(self):
         for row in self.grid:
