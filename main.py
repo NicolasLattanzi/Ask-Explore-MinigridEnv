@@ -10,17 +10,21 @@ from agent import Policy
 tested envs:
 
 "MiniGrid-Empty-16x16-v0"
-"MiniGrid-FourRooms-v0"
-"MiniGrid-DoorKey-6x6-v0"
 "MiniGrid-LavaGapS7-v0"
-"MiniGrid-MemoryS11-v0"
+"MiniGrid-FourRooms-v0"
+"MiniGrid-Dynamic-Obstacles-5x5-v0"
+"MiniGrid-Dynamic-Obstacles-Random-6x6-v0"
+"MiniGrid-DoorKey-6x6-v0"
+"MiniGrid-DoorKey-8x8-v0"
+"MiniGrid-LavaCrossingS9N2-v0"
+
 "MiniGrid-KeyCorridorS3R2-v0"
 '''
 
-MINIGRID_ENV = "MiniGrid-MemoryS11-v0"
+MINIGRID_ENV = "MiniGrid-LavaCrossingS9N2-v0"
 
 
-def evaluate(env=None, n_episodes=200, render=False, load_best_model=False):
+def evaluate(env=None, n_episodes=300, render=False, load_best_model=False):
     agent = Policy(MINIGRID_ENV)
     if load_best_model:
         agent.load_based_on_env(MINIGRID_ENV)

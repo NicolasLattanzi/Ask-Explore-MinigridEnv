@@ -1,100 +1,65 @@
 -----------------------------------------------------------------------------------
---- env: EMPTY 16x16 -----------------------------------------------------
+-------------------------- env: EMPTY 16x16 -----------------------------------------------------
 
 the best model is reached within about 300 iterations. 
 average reward: 0.97
 
-params:
-
-learning_rate = 0.001
-max_iterations = 5000
-epochs = 4
-rollout_steps = 200
-batch_size = 16
-
-eta = 0.01
-icm_lr = 0.001
-
 using QA the model reach the best result in about 1500 iterations.
 average reward: 0.97
 -----------------------------------------------------------------------------------
---- env: FOUR ROOMS -----------------------------------------------------
+-------------------------- env: FOUR ROOMS -----------------------------------------------------
 
 the best model is reached within 3000 to 4000 iterations. 
 average reward: 0.4
 
-
-params:
-
-learning_rate = 0.001
-max_iterations = 5000
-epochs = 4
-rollout_steps = 350
-batch_size = 16
-
-eta = 0.01
-icm_lr = 0.001
-
-using QA the model reach the best result in about 7500 iterations.
-average reward: 0.43
+using QA the model reach the best result in about 9000 iterations.
+average reward: 0.45
 -----------------------------------------------------------------------------------
---- env: DOOR KEY -----------------------------------------------------
+-------------------------- env: DOOR KEY 6x6 -----------------------------------------------------
+
+model can't reach a working stage within 10'000 iterations
+average reward: 0.07
+
+using QA the model reach the best result in about 2500 iterations.
+average reward: 0.94 (6x6)
+-----------------------------------------------------------------------------------
+-------------------------- env: DOOR KEY 8x8 -----------------------------------------------------
 
 model can't reach a working stage within 10'000 iterations
 average reward: 0.0
 
-
-params:
-
-learning_rate = 0.001
-max_iterations = 5000
-epochs = 4
-rollout_steps = 350
-batch_size = 16
-
-eta = 0.01
-icm_lr = 0.001
-
-using QA the model reach the best result in about 3000 iterations.
-average reward: 0.82 (6x6)
+using QA the model reach the best result in about 1250 iterations.
+average reward: 0.95 (6x6)
 -----------------------------------------------------------------------------------
---- env: LAVA GAPS 7x7 -----------------------------------------------------
+-------------------------- env: LAVA GAPS 7x7 -----------------------------------------------------
 
 model reaches 0.7 accuracy in about 1000 iterations and then slowly rises to
 about 0.9 at 3500 iterations. after that point results start to get worse
 average reward: 0.88
 
-
-params:
-
-learning_rate = 0.001
-max_iterations = 5000
-epochs = 4
-rollout_steps = 300
-batch_size = 16
-
-eta = 0.01
-icm_lr = 0.001
-
 using QA the model reach the best result in about 2250 iterations.
 average reward: 0.93
 -----------------------------------------------------------------------------------
---- env: MEMORY -----------------------------------------------------
+-------------------------- env: DYNAMIC OBSTACLES 5x5 -----------------------------------------------------
 
-the model reaches the reward after 2500 iterations, it didn't really learn to
-memorize, it just goes randomly straight at the target and hopes for the best.
-average reward: 0.5
+the model reaches the reward after 8000 iterations
+average reward: 0.75
 
+using QA the model reach the best result in about 8000 iterations.
+average reward: 0.86
+-----------------------------------------------------------------------------------
+-------------------------- env: DYNAMIC OBSTACLES 6x6 random ------------------------------------------
 
-params:
+the model reaches the reward after 4750 iterations
+average reward: 0.88
 
-learning_rate = 0.001
-max_iterations = 5000
-epochs = 4
-rollout_steps = 300
-batch_size = 16
+using QA the model reach the best result in about 8000 iterations.
+average reward: 0.9
+-----------------------------------------------------------------------------------
+-------------------------- env: LAVA CROSSING S9N2 ------------------------------------------
 
-eta = 0.01
-icm_lr = 0.001
+the model can't seem to get good at avoiding lava. best reward reached at 1200 iterations.
+average reward: 0.1
 
-
+using QA the model reach the best result in about 10000 iterations.
+average reward: 0.81

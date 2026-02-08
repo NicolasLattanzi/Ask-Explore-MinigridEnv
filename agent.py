@@ -148,6 +148,10 @@ class Policy(nn.Module):
             new_state, reward, terminated, truncated, info = self.env.step(a_env)
             done = terminated or truncated
 
+            # === QA REWARD ===
+            if using_qa:
+                reward += self.qa.check_questions(self.env, new_state, reward, done)
+            
             # === CURIOSITY REWARD ===
             intr_reward = self.compute_intrinsic_reward(s, a_env, new_state)
             self.intrinsic_rewards.append(intr_reward)
@@ -165,10 +169,6 @@ class Policy(nn.Module):
             else: 
                 still_frames = 0
             last_position = curr_position
-            
-            # === QA REWARD ===
-            if using_qa:
-                reward += self.qa.check_questions(self.env, reward, done)
 
             self.values.append(value.item())
             self.states.append(s)
@@ -216,14 +216,14 @@ class Policy(nn.Module):
         
         max_iterations = 10000
         epochs = 4
-        rollout_steps = 300
+        rollout_steps = 250
         batch_size = 16
         
         # curiosity params
         eta = 0.01  # curiosity weight
         icm_lr = 0.001   # ICM learning rate
         
-        using_qa = True
+        using_qa = False
 
         ###############################
         
@@ -341,7 +341,7 @@ class Policy(nn.Module):
     def save(self, path='model.pt'):
         torch.save(self.state_dict(), path)
 
-    def load(self, path='best_model.pt'):
+    def load(self, path='model.pt'):
         self.load_state_dict(torch.load(path, map_location=self.device))
     
     def load_based_on_env(self, env_name):

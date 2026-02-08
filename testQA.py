@@ -5,6 +5,13 @@ import gymnasium as gym
 import questions
 import minigrid
 
+""" 
+
+file used to check QA correct function with minigrid manual movement
+
+"""
+
+
 class GridController(pyglet.window.Window):
     def __init__(self, env, qa):
         super().__init__(width=800, height=600, caption="Minigrid Manual Control")
@@ -32,7 +39,7 @@ class GridController(pyglet.window.Window):
             print(f"Action: {action}")
             obs, reward, terminated, truncated, info = self.env.step(action)
             
-            bonus = self.qa.check_questions(self.env, reward, terminated or truncated)
+            bonus = self.qa.check_questions(self.env, obs, reward, terminated or truncated)
             print(f"Step reward: {reward}, QA bonus: {bonus}")
             
             if terminated or truncated:
@@ -52,10 +59,14 @@ class GridController(pyglet.window.Window):
 tested envs:
 
 "MiniGrid-Empty-16x16-v0"
-"MiniGrid-FourRooms-v0"
-"MiniGrid-DoorKey-16x16-v0"
 "MiniGrid-LavaGapS7-v0"
-"MiniGrid-MemoryS11-v0"
+"MiniGrid-FourRooms-v0"
+"MiniGrid-Dynamic-Obstacles-5x5-v0"
+"MiniGrid-Dynamic-Obstacles-Random-6x6-v0"
+"MiniGrid-DoorKey-6x6-v0"
+"MiniGrid-DoorKey-8x8-v0"
+
+"MiniGrid-KeyCorridorS3R2-v0"
 '''
 
 MINIGRID_ENV = "MiniGrid-LavaGapS7-v0"

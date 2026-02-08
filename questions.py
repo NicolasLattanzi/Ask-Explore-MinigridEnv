@@ -9,12 +9,12 @@ True-Answers rewards must be one-shot to avoid exploitation!!!!
 
 Questions:
 1. Did you reach the goal?
-2. Can you see the goal?
+2. Are you going through a hall?
 3. Did you take a key?
-3. Are you near a door? (with a key)
-4. Did you unlock a door?
-5. Are you going through a door/ hall?
-6. Did you die? (ex. lava)
+4. Are you near a door with a key?
+5. Did you unlock a door?
+6. Did you fail? (ex. lava)
+7. Have you run out of time?
 """
 
 from minigrid.core.world_object import Key
@@ -27,7 +27,7 @@ class QA():
         self.grid = []
         self.carrying = False
     
-    def check_questions(self, env, reward, done):
+    def check_questions(self, env, obs, reward, done):
         bonus = 0  # total reward for the agent
         
         carried_item = env.unwrapped.carrying
@@ -35,35 +35,39 @@ class QA():
         curr_position = list(map(lambda x: int(x), curr_position))
         x, y = curr_position
         
+        # 7. run out of time
+        if env.unwrapped.step_count == env.unwrapped.max_steps:
+            return -1
+        
         if done:
             # 1. Did you reach the goal?
             if reward > 0:
-                return max(5, 10 * reward)
+                return max(5, 5 * reward)
             # 6. Did you fail?
             else:
                 return -10
         
-        # 3. Did you take a key?
-        if not self.carrying and self.has_key(carried_item):
-            bonus += 1
-            self.carrying = True
-        
-        # 4. Are you near a door?
-        if self.grid[x][y] == 6:
-            bonus += 0.03
-            if self.carrying == True:
-                bonus += 0.1
-        
-        # 4. Did you unlock a door?
-        elif self.grid[x][y] == 4:
-            bonus += 5
-            self.grid[x][y] == 0 # no exploit!
-            self.grid[x-1][y] == 0 
-        
-        # 5. Are you going through a door/ hall?
-        # elif self.grid[x][y] == 5:
+        # 2. Are you going through a hall?
+        # if self.grid[x][y] == 5:
         #     bonus += 0.15
         #     self.grid[x][y] = 0
+        
+        # # 3. Did you take a key?
+        # if not self.carrying and self.has_key(carried_item):
+        #     bonus += 1
+        #     self.carrying = True
+        
+        # # 4. Are you near a door?
+        # elif self.grid[x][y] == 6:
+        #     #bonus += 0.03
+        #     if self.carrying == True:
+        #         bonus += 0.12
+        
+        # # 5. Did you unlock a door?
+        # elif self.grid[x][y] == 4:
+        #     bonus += 2
+        #     self.grid[x][y] = 0 # no exploit!
+        #     self.grid[x-1][y] = 0 
             
         return bonus
 
