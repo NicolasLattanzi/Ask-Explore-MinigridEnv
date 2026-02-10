@@ -63,3 +63,11 @@ average reward: 0.1
 
 using QA the model reach the best result in about 10000 iterations.
 average reward: 0.81
+-----------------------------------------------------------------------------------
+-------------------------- env: LAVA DISTSHIFT -----------------------------------------------------
+
+the model reaches the reward after 4750 iterations
+average reward: 0.1
+
+using QA the model reach the best result in about 1000 iterations.
+average reward: 0.91

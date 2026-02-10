@@ -18,8 +18,8 @@ class Policy(nn.Module):
         # checking environment
         self.env_name = minigrid_env
         self.env = gym.make(minigrid_env, render_mode=None)
-        obs, _ = self.env.reset()
-        #self.build_grid()
+        # obs, _ = self.env.reset()
+        # self.build_grid()
         self.env.close()
         
         self.qa = questions.QA()
@@ -341,7 +341,7 @@ class Policy(nn.Module):
     def save(self, path='model.pt'):
         torch.save(self.state_dict(), path)
 
-    def load(self, path='model.pt'):
+    def load(self, path='best_model.pt'):
         self.load_state_dict(torch.load(path, map_location=self.device))
     
     def load_based_on_env(self, env_name):

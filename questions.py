@@ -6,6 +6,12 @@ the question becomes "Yes", the agent gets a reward. Different questions have di
 reward values. (ex: reaching the goal represents maximum reward. Dying is negative reward)
 
 True-Answers rewards must be one-shot to avoid exploitation!!!!
+The environment is really simple, so the QA method can be sometimes be approximated to 
+an Action-Reward program
+
+Note: this is a simplified scenario, so the QA program is meant to be able to observe the
+entire environment. Still, the logic employed in this project can still be applied to an
+agent's pure observation to achieve an equal result.
 
 Questions:
 1. Did you reach the goal?
@@ -52,18 +58,16 @@ class QA():
         #     bonus += 0.15
         #     self.grid[x][y] = 0
         
-        # # 3. Did you take a key?
+        # 3. Did you take a key?
         # if not self.carrying and self.has_key(carried_item):
         #     bonus += 1
         #     self.carrying = True
         
-        # # 4. Are you near a door?
-        # elif self.grid[x][y] == 6:
-        #     #bonus += 0.03
-        #     if self.carrying == True:
-        #         bonus += 0.12
+        # # 4. Are you near a door with a key?
+        # elif self.grid[x][y] == 6 and self.carrying:
+        #     bonus += 0.12
         
-        # # 5. Did you unlock a door?
+        # 5. Did you unlock a door?
         # elif self.grid[x][y] == 4:
         #     bonus += 2
         #     self.grid[x][y] = 0 # no exploit!
@@ -80,24 +84,26 @@ class QA():
     def build_grid(self, env):
         envgrid = env.unwrapped.grid.encode()
         #print(envgrid)
-        w = env.unwrapped.width
-        h = env.unwrapped.height
+        envgrid = env.unwrapped.grid.encode()
+        h, w, _ = envgrid.shape
+        #w = env.unwrapped.width
+        #h = env.unwrapped.height
         
         self.grid = [ [0 for _ in range(w)] for _ in range(h) ]
         for row in range(h):
             for column in range(w):
-                grid_value = envgrid[row, column]
+                grid_value = envgrid[row, column, :]
                 grid_value = list(map(lambda x: int(x), grid_value))
                 v = 0
-                if grid_value == [1,0,0]: # floor
+                if grid_value[0] == 1: # floor
                     continue
-                elif grid_value == [2,5,0]: # wall
+                elif grid_value[0] == 2: # wall
                     v = 1
-                elif grid_value == [8,1,0]: # goal
+                elif grid_value[0] == 8: # goal
                     v = 2
-                elif grid_value == [9,0,0]: # lava
+                elif grid_value[0] == 9: # lava
                     v = 3
-                elif grid_value == [4,4,2]: # door
+                elif grid_value[0] == 4: # door
                     v = 4
                 self.grid[row][column] = v
         

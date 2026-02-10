@@ -17,11 +17,10 @@ tested envs:
 "MiniGrid-DoorKey-6x6-v0"
 "MiniGrid-DoorKey-8x8-v0"
 "MiniGrid-LavaCrossingS9N2-v0"
-
-"MiniGrid-KeyCorridorS3R2-v0"
+"MiniGrid-DistShift1-v0"
 '''
 
-MINIGRID_ENV = "MiniGrid-LavaCrossingS9N2-v0"
+MINIGRID_ENV = "MiniGrid-DistShift1-v0"
 
 
 def evaluate(env=None, n_episodes=300, render=False, load_best_model=False):

@@ -65,11 +65,11 @@ tested envs:
 "MiniGrid-Dynamic-Obstacles-Random-6x6-v0"
 "MiniGrid-DoorKey-6x6-v0"
 "MiniGrid-DoorKey-8x8-v0"
-
-"MiniGrid-KeyCorridorS3R2-v0"
+"MiniGrid-LavaCrossingS9N2-v0"
+"MiniGrid-DistShift1-v0"
 '''
 
-MINIGRID_ENV = "MiniGrid-LavaGapS7-v0"
+MINIGRID_ENV = "MiniGrid-Empty-16x16-v0"
 
 def main():
     env = gym.make(MINIGRID_ENV, render_mode="human") 
