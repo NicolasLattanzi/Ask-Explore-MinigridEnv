@@ -9,6 +9,7 @@ This approach is particularly efficient with puzzle environments, such as the Do
 - (5) Did you unlock a door?
 - (6) Did you fail? (ex. lava)
 - (7) Have you run out of time?
+
 Each question is assigned with a reward value, as shown in the file 'questions.py'.
 Results of the project can be examined in results.txt
 
